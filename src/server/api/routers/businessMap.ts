@@ -10,19 +10,7 @@ export const businessMapRouter = createTRPCRouter({
   getFullMap: protectedProcedure.query(async ({ ctx }) => {
 
     const branchesMap = await ctx.prisma.branch.findMany({
-      include: {
-        buildings: {
-          include: {
-            floors: {
-              include: {
-                rooms: {
-
-                }
-              }
-            }
-          }
-        }
-      }
+     
     })
 
 
@@ -31,15 +19,7 @@ export const businessMapRouter = createTRPCRouter({
       where: {
         branchId: null
       },
-      include: {
-        floors: {
-          include: {
-            rooms: {
-
-            }
-          }
-        }
-      }
+    
     })
 
     return {
