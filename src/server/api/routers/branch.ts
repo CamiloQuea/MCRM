@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-    caslMiddleware,
+
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
@@ -20,13 +20,7 @@ export const branchRouter = createTRPCRouter({
         .query(async ({ ctx, input }) => {
 
             const buildings = await ctx.prisma.branch.findMany({
-                include: {
-                    _count: input?.count ? {
-                        select: {
-                            buildings: input.count?.building ? true : false,
-                        }
-                    } : false
-                },
+
                 where: input?.where ? {
                     name: input.where?.name ? {
                         contains: input.where.name
@@ -36,10 +30,7 @@ export const branchRouter = createTRPCRouter({
             return buildings;
         }),
     create: protectedProcedure
-        .use(caslMiddleware({
-            action: 'create',
-            subject: 'branch'
-        }))
+
         .input(
             z.object({
                 name: z.string(),
@@ -62,13 +53,7 @@ export const branchRouter = createTRPCRouter({
             where: {
                 id: input.id
             },
-            include: {
-                _count: {
-                    select: {
-                        buildings: true
-                    }
-                }
-            }
+
         });
         return branch;
     }),
