@@ -49,7 +49,9 @@ export function SelectSingleField<
       className={classNames(["react-select-container", props.className])}
       options={options}
       value={value ? options.filter((c) => c.value === value) : null}
-      onChange={(val) => onChange(val?.value || null)}
+      onChange={(val) =>
+        onChange((val?.value || null) as PathValue<TFields, TName>)
+      }
     />
   );
 }
