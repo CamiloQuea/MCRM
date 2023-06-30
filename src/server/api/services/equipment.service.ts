@@ -13,18 +13,7 @@ export const getEquipmentLocalizationPromise = ({ prisma, input }: {
                 equals: input.equipmentId
             }
         },
-        include: {
-            equipment: {
-                include: {
-                    equipmentSpecificationSheet: {
-                        include: {
-                            equipmentBrand: true,
-                            equipmentMargesi: true
-                        }
-                    }
-                }
-            }
-        },
+  
         orderBy: {
             createdAt: 'desc',
 

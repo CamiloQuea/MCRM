@@ -9,29 +9,29 @@ import { clerkClient } from "@clerk/nextjs/server";
 export const incidentRouter = createTRPCRouter({
     getAll: protectedProcedure.query(async ({ ctx }) => {
         const incidentReport = await ctx.prisma.incidentReport.findMany({
-            include: {
-                incidentReportRecord: {
-                    orderBy: {
-                        createdAt: 'desc'
-                    },
-                    take: 1,
-                    include: {
+            // include: {
+            //     incidentReportRecord: {
+            //         orderBy: {
+            //             createdAt: 'desc'
+            //         },
+            //         take: 1,
+            //         include: {
 
-                        incidentReportState: true,
-                    }
-                },
+            //             incidentReportState: true,
+            //         }
+            //     },
 
-            }
+            // }
         })
 
-        const users = new Set(incidentReport.map(incidentReport => incidentReport.userId))
+        const users = new Set(incidentReport.map(incidentReport => incidentReport.creatorId))
 
         const userList = await clerkClient.users.getUserList({
             userId: Array.from(users)
         })
 
         return incidentReport.map(incidentReport => {
-            const user = userList.find(user => user.id === incidentReport.userId)
+            const user = userList.find(user => user.id === incidentReport.creatorId)
 
             return {
                 id: incidentReport.id,
@@ -39,12 +39,12 @@ export const incidentRouter = createTRPCRouter({
                 description: incidentReport.description,
                 incidentDate: incidentReport.incidentDate,
                 createdAt: incidentReport.createdAt,
-                updatedAt: incidentReport.updatedAt,
+                // updatedAt: incidentReport.updatedAt,
                 user: user ? {
                     id: user.id,
                     username: user.username,
                 } : undefined,
-                state: incidentReport.incidentReportRecord[0],
+                // state: incidentReport.incidentReportRecord[0],
             }
         }
         )
@@ -60,40 +60,40 @@ export const incidentRouter = createTRPCRouter({
                 where: {
                     id: input.id
                 },
-                include: {
-                    incidentReportRecord: {
-                        orderBy: {
-                            createdAt: 'desc'
-                        },
-                        take: 1,
-                        include: {
+                // include: {
+                //     incidentReportRecord: {
+                //         orderBy: {
+                //             createdAt: 'desc'
+                //         },
+                //         take: 1,
+                //         include: {
 
-                            incidentReportState: true,
-                        }
-                    },
-                    incidentReportEquipment: {
-                        include: {
-                            equipment: {
-                                include: {
-                                    equipmentSpecificationSheet: {
-                                        include: {
-                                            equipmentBrand: true,
-                                            equipmentMargesi: true,
-                                        }
-                                    }
+                //             incidentReportState: true,
+                //         }
+                //     },
+                //     incidentReportEquipment: {
+                //         include: {
+                //             equipment: {
+                //                 include: {
+                //                     equipmentSpecificationSheet: {
+                //                         include: {
+                //                             equipmentBrand: true,
+                //                             equipmentMargesi: true,
+                //                         }
+                //                     }
 
-                                }
-                            }
-                        }
-                    }
-                }
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
             })
 
             if (!incidentReport) return;
 
 
 
-            const user = await clerkClient.users.getUser(incidentReport.userId)
+            const user = await clerkClient.users.getUser(incidentReport.creatorId)
 
             return {
                 id: incidentReport.id,
@@ -101,13 +101,12 @@ export const incidentRouter = createTRPCRouter({
                 description: incidentReport.description,
                 incidentDate: incidentReport.incidentDate,
                 createdAt: incidentReport.createdAt,
-                updatedAt: incidentReport.updatedAt,
+
                 user: {
                     id: user.id,
                     username: user.username,
                 },
-                state: incidentReport.incidentReportRecord[0],
-                equipmentDetail: incidentReport.incidentReportEquipment
+
             }
         }),
 
@@ -127,16 +126,17 @@ export const incidentRouter = createTRPCRouter({
                     code: input.code,
                     description: input.description,
                     incidentDate: input.incidentDate,
-                    userId: ctx.auth.userId,
-                    incidentReportEquipment: {
-                        create: input.equipmentDetail.map(equipmentDetail => {
-                            return {
-                                equipmentId: equipmentDetail.equipmentId,
-                                description: equipmentDetail.description,
+                    creatorId: ctx.auth.userId,
+                    // userId: ctx.auth.userId,
+                    // incidentReportEquipment: {
+                    //     create: input.equipmentDetail.map(equipmentDetail => {
+                    //         return {
+                    //             equipmentId: equipmentDetail.equipmentId,
+                    //             description: equipmentDetail.description,
 
-                            }
-                        })
-                    }
+                    //         }
+                    //     })
+                    // }
 
                 }
             })

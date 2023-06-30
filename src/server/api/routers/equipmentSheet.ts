@@ -45,9 +45,7 @@ export const equipmentSheetRouter = createTRPCRouter({
             }
           },
           _count: {
-            select: {
-              equipments: true
-            }
+         
           }
 
         },

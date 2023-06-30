@@ -19,13 +19,7 @@ export const equipmentRecordRouter = createTRPCRouter({
                 where: {
                     equipmentId: input.equipmentId
                 },
-                include: {
-                    room: {
-                        select: {
-                            name: true
-                        }
-                    }
-                },
+             
                 orderBy: {
                     createdAt: 'desc'
                 },
