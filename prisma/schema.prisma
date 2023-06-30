@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  hexColor  String?
+}
+
+model Building {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branchId  String?
+  hexColor  String?
+
+  @@index([branchId], map: "Building_branchId_idx")
+}
+
+model Buildingfloor {
+  id          String   @id @default(uuid())
+  floorNumber Int
+  buildingId  String
+  createdAt   DateTime @default(now())
+
+  @@unique([buildingId, floorNumber], map: "BuildingFloor_buildingId_floorNumber_key")
+  @@index([buildingId], map: "BuildingFloor_buildingId_idx")
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  Room      Room[]
+}
+
+model Equipment {
+  id                            String                       @id @default(uuid())
+  admissionDate                 DateTime
+  serialNumber                  String?                      @unique(map: "Equipment_serialNumber_key")
+  codeBar                       String?
+  internalCode                  String?
+  margesiCode                   String?
+  updatedAt                     DateTime                     @updatedAt
+  createdAt                     DateTime                     @default(now())
+  equipmentSpecificationSheetId String?
+  equipmentSpecificationSheet   EquipmentSpecificationSheet? @relation(fields: [equipmentSpecificationSheetId], references: [id])
+
+  @@index([equipmentSpecificationSheetId], map: "Equipment_equipmentSpecificationSheetId_idx")
+}
+
+model EquipmentBrand {
+  id                          String                        @id @default(uuid())
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime                      @updatedAt
+  name                        String
+  EquipmentSpecificationSheet EquipmentSpecificationSheet[]
+}
+
+model EquipmentMargesi {
+  id                          String                        @id @default(uuid())
+  code                        String?
+  denomination                String
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime                      @updatedAt
+  EquipmentSpecificationSheet EquipmentSpecificationSheet[]
+}
+
+model EquipmentSpecificationSheet {
+  id                 String            @id @default(uuid())
+  modelName          String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  equipmentBrandId   String?
+  equipmentBrand     EquipmentBrand?   @relation(fields: [equipmentBrandId], references: [id])
+  width              Int?
+  height             Int?
+  length             Int?
+  equipmentMargesiId String?
+  equipmentMargesi   EquipmentMargesi? @relation(fields: [equipmentMargesiId], references: [id])
+  Equipment          Equipment[]
+
+  @@index([equipmentBrandId], map: "EquipmentSpecificationSheet_equipmentBrandId_idx")
+  @@index([equipmentMargesiId], map: "EquipmentSpecificationSheet_equipmentMargesiId_idx")
+}
+
+model EquipmentTracking {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  equipmentId String
+  roomId      String
+  date        DateTime
+  description String?
+
+  @@index([equipmentId], map: "EquipmentTracking_equipmentId_idx")
+  @@index([roomId], map: "EquipmentTracking_roomId_idx")
+}
+
+model IncidentReport {
+  id           String    @id @default(uuid())
+  code         String
+  createdAt    DateTime  @default(now())
+  description  String?
+  incidentDate DateTime?
+  departmentId String?
+  creatorId    String
+
+  @@index([departmentId], map: "IncidentReport_departmentId_idx")
+}
+
+model incidentreportstatus {
+  id               String   @id @default(uuid())
+  assignedAt       DateTime @default(now())
+  incidentReportId String
+  statusTypeId     String
+
+  @@unique([incidentReportId, statusTypeId], map: "IncidentReportStatus_incidentReportId_statusTypeId_key")
+  @@index([incidentReportId], map: "IncidentReportStatus_incidentReportId_idx")
+  @@index([statusTypeId], map: "IncidentReportStatus_statusTypeId_idx")
+}
+
+model Incidentreportstatustype {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String   @unique(map: "IncidentReportStatusType_name_key")
+  isDefault Boolean  @default(false)
+}
+
+model Room {
+  id              String      @id @default(uuid())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  name            String
+  parentRoomId    String?
+  buildingFloorId String
+  departmentId    String?
+  department      Department? @relation(fields: [departmentId], references: [id])
+
+  @@index([buildingFloorId], map: "Room_buildingFloorId_idx")
+  @@index([departmentId], map: "Room_departmentId_idx")
+  @@index([parentRoomId], map: "Room_parentRoomId_idx")
+}
