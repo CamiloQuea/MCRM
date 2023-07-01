@@ -7,6 +7,7 @@ import { buildingRouter } from './routers/building';
 import { departmentRouter } from './routers/department';
 import { roomRouter } from './routers/room';
 import { buildingFloorRouter } from './routers/buildingFloor';
+import { incidentRouter } from './routers/incident';
 export const appRouter = createTRPCRouter({
   equipment: equipmentRouter,
   equipmentBrand: equipmentBrandRouter,
@@ -14,7 +15,9 @@ export const appRouter = createTRPCRouter({
   building: buildingRouter,
   department: departmentRouter,
   room: roomRouter,
-  buildingFloor: buildingFloorRouter
+  buildingFloor: buildingFloorRouter,
+  incident: incidentRouter
+  
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;

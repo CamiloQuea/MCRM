@@ -17,17 +17,17 @@ export const adminRoutes: { [key: string]: routeItem } = {
     },
     incidencias: {
         title: "Incidencias",
-        to: `${dashboardRoot}/incidente`,
+        to: `${dashboardRoot}/incidencias`,
     },
     ubicacion: {
         title: "Ubicaciones",
         to: `${dashboardRoot}/ubicacion`,
     },
 
-    usuarios: {
-        title: "Usuarios",
-        to: `${dashboardRoot}/usuarios`,
-    },
+    // usuarios: {
+    //     title: "Usuarios",
+    //     to: `${dashboardRoot}/usuarios`,
+    // },
 
 }
 
