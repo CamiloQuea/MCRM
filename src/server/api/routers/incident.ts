@@ -8,7 +8,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 
 export const incidentRouter = createTRPCRouter({
     getAll: protectedProcedure.query(async ({ ctx }) => {
-        const incidentReport = await ctx.prisma.incidentReport.findMany({
+        const incidentReport = await ctx.prisma.incidentreport.findMany({
             // include: {
             //     incidentReportRecord: {
             //         orderBy: {
@@ -56,7 +56,7 @@ export const incidentRouter = createTRPCRouter({
             id: z.string(),
         }))
         .query(async ({ ctx, input }) => {
-            const incidentReport = await ctx.prisma.incidentReport.findUnique({
+            const incidentReport = await ctx.prisma.incidentreport.findUnique({
                 where: {
                     id: input.id
                 },
@@ -121,7 +121,7 @@ export const incidentRouter = createTRPCRouter({
             })),
         }))
         .mutation(({ ctx, input }) => {
-            return ctx.prisma.incidentReport.create({
+            return ctx.prisma.incidentreport.create({
                 data: {
                     code: input.code,
                     description: input.description,

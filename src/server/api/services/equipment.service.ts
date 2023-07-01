@@ -7,7 +7,7 @@ export const getEquipmentLocalizationPromise = ({ prisma, input }: {
     }
 }) => {
 
-    return prisma.equipmentTracking.findFirst({
+    return prisma.equipmenttracking.findFirst({
         where: {
             equipmentId: {
                 equals: input.equipmentId

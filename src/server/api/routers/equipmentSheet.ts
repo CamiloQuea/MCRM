@@ -22,7 +22,7 @@ export const equipmentSheetRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
 
 
-      const equipment = await ctx.prisma.equipmentSpecificationSheet.findMany({
+      const equipment = await ctx.prisma.equipmentspecificationsheet.findMany({
         where: {
           id: {
             contains: input.equipmentSheetId
@@ -63,7 +63,7 @@ export const equipmentSheetRouter = createTRPCRouter({
       equipmentId: z.string().optional(),
     }))
     .query(async ({ ctx, input }) => {
-      return await ctx.prisma.equipmentSpecificationSheet.findUnique({
+      return await ctx.prisma.equipmentspecificationsheet.findUnique({
         where: {
           id: input.equipmentId
         },
@@ -120,7 +120,7 @@ export const equipmentSheetRouter = createTRPCRouter({
         })
       }
 
-      const sheetFound = await ctx.prisma.equipmentSpecificationSheet.create({
+      const sheetFound = await ctx.prisma.equipmentspecificationsheet.create({
         data: {
           equipmentBrandId: input.equipmentBrandId,
           equipmentMargesiId: input.equipmentMargesiCode,

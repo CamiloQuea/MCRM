@@ -94,7 +94,7 @@ export const equipmentRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
 
-            const sheet = await ctx.prisma.equipmentSpecificationSheet.findFirst({
+            const sheet = await ctx.prisma.equipmentspecificationsheet.findFirst({
                 where: {
                     equipmentBrandId: input.equipmentBrandId,
                     equipmentMargesiId: input.equipmentMargesiCode,
@@ -108,7 +108,7 @@ export const equipmentRouter = createTRPCRouter({
             let sheetFound = sheet
 
             if (!sheet)
-                sheetFound = await ctx.prisma.equipmentSpecificationSheet.create({
+                sheetFound = await ctx.prisma.equipmentspecificationsheet.create({
                     data: {
                         equipmentBrandId: input.equipmentBrandId,
                         equipmentMargesiId: input.equipmentMargesiCode,

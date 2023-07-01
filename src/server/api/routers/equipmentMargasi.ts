@@ -11,7 +11,7 @@ export const equipmentMargesiRouter = createTRPCRouter({
         .input(z.object({
         }).optional())
         .query(async ({ ctx }) => {
-            const branches = await ctx.prisma.equipmentMargesi.findMany();
+            const branches = await ctx.prisma.equipmentmargesi.findMany();
             return branches;
         }),
 
@@ -20,7 +20,7 @@ export const equipmentMargesiRouter = createTRPCRouter({
             CreateMargesiSchema
         )
         .mutation(async ({ ctx, input }) => {
-            const branch = await ctx.prisma.equipmentMargesi.create({
+            const branch = await ctx.prisma.equipmentmargesi.create({
                 data: input
             });
             return branch;

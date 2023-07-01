@@ -15,7 +15,7 @@ export const equipmentRecordRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input }) => {
 
-            return ctx.prisma.equipmentTracking.findMany({
+            return ctx.prisma.equipmenttracking.findMany({
                 where: {
                     equipmentId: input.equipmentId
                 },
