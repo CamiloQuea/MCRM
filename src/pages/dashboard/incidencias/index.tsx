@@ -102,6 +102,11 @@ const Index = () => {
                       </>
                     ),
                   },
+                  {
+                    accessorKey: "user",
+                    header: "Codigo",
+                    cell: (row) => row.row.original?.user?.username || "-",
+                  },
                 ]}
               />
             </>
