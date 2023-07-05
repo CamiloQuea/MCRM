@@ -29,11 +29,16 @@ export const EquipmentPage = () => {
     schema: GetAllEquipmentSchema,
   });
 
-  const searchDebounce = useDebounce(form.watch("search"), 500)
+  const searchDebounce = useDebounce(form.watch("search"), 500);
 
-  const { data } = api.equipment.getAll.useQuery({
-    search: searchDebounce
-  });
+  const { data } = api.equipment.getAll.useQuery(
+    {
+      search: searchDebounce,
+    },
+    {
+      suspense: typeof searchDebounce !== "undefined",
+    }
+  );
 
   const weeklyCount = data?.filter((item) => {
     const date = new Date(item.admissionDate.toUTCString());
@@ -55,7 +60,7 @@ export const EquipmentPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-            {/* {data?.length } */}
+              {/* {data?.length } */}
               {typeof data?.length !== "undefined" ? data?.length : "-"}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -80,8 +85,7 @@ export const EquipmentPage = () => {
         />
       </div>
       <DataTable
-
-      className="h-[30rem]"
+        className="h-[30rem]"
         noDataMessage="No equipamiento encontrado"
         columns={[
           {
@@ -93,9 +97,7 @@ export const EquipmentPage = () => {
               row.equipmentSpecificationSheet?.equipmentMargesi?.denomination ||
               "-",
             accessorKey: "Denomicación",
-            cell: (row) => (
-              <div className="capitalize">{row.getValue()}</div>
-            ),
+            cell: (row) => <div className="capitalize">{row.getValue()}</div>,
           },
           {
             accessorFn: (row) => row.codeBar || "-",
@@ -114,9 +116,7 @@ export const EquipmentPage = () => {
             accessorFn: (row) =>
               row.equipmentSpecificationSheet?.equipmentBrand?.name || "-",
             accessorKey: "Marca",
-            cell: (row) => (
-              <div className="capitalize">{row.getValue()}</div>
-            ),
+            cell: (row) => <div className="capitalize">{row.getValue()}</div>,
           },
           {
             accessorFn: (row) =>
