@@ -15,16 +15,11 @@ export const equipmentRecordRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input }) => {
 
-            return ctx.prisma.equipmenttracking.findMany({
-                where: {
-                    equipmentId: input.equipmentId
-                },
-             
-                orderBy: {
-                    createdAt: 'desc'
-                },
 
-            })
+            const query = ctx.db.selectFrom('equipmenttracking').selectAll().where('equipmentId', '=', input.equipmentId)
+                .orderBy('createdAt', 'desc')
+
+            return query.execute()
 
         })
 })

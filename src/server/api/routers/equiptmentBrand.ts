@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import {
     createTRPCRouter,
     protectedProcedure,
@@ -18,9 +19,14 @@ export const equipmentBrandRouter = createTRPCRouter({
     create: protectedProcedure
         .input(CreateBrandSchema)
         .mutation(async ({ ctx, input }) => {
-            const equipmentBrand = await ctx.prisma.equipmentbrand.create({
-                data: input,
-            });
-            return equipmentBrand;
+
+            const query = ctx.db.insertInto('equipmentbrand').values({
+                id: randomUUID(),
+                name: input.name,
+                updatedAt: new Date(),
+            })
+
+
+            return query.executeTakeFirst();
         })
 })

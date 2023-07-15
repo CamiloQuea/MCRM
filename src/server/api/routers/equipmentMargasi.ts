@@ -4,6 +4,7 @@ import {
     protectedProcedure,
 } from "../trpc";
 import { CreateMargesiSchema } from "../validators";
+import { randomUUID } from "crypto";
 
 
 export const equipmentMargesiRouter = createTRPCRouter({
@@ -13,7 +14,7 @@ export const equipmentMargesiRouter = createTRPCRouter({
         .query(async ({ ctx }) => {
             const query = ctx.db.selectFrom('equipmentmargesi').selectAll()
             return query.execute()
-         
+
         }),
 
     create: protectedProcedure
@@ -21,10 +22,17 @@ export const equipmentMargesiRouter = createTRPCRouter({
             CreateMargesiSchema
         )
         .mutation(async ({ ctx, input }) => {
-            const branch = await ctx.prisma.equipmentmargesi.create({
-                data: input
-            });
-            return branch;
+
+            const query = ctx.db.insertInto('equipmentmargesi').values({
+                id: randomUUID(),
+                denomination: input.denomination,
+                code: input.code, updatedAt: new Date(),
+            })
+
+            // const branch = await ctx.prisma.equipmentmargesi.create({
+            //     data: input
+            // });
+            return query.executeTakeFirst();
         })
 
 })
