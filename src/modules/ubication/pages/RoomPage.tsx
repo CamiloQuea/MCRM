@@ -63,7 +63,7 @@ export const RoomPage = () => {
                 </DropdownMenu>
               </div>
               <CardDescription className="p-3 pt-0  capitalize">
-                {item.department?.name || "-"}
+                {/* {item.department?.name || "-"} */}
               </CardDescription>
             </Card>
           );
