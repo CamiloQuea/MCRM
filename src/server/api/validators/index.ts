@@ -36,6 +36,7 @@ export const CreateEquipmentSchema = z
   .object({
     equipmentBrandId: z.string(),
     equipmentMargesiCode: z.string(),
+    margesiCode: z.string(),
     model: z.string(),
     width: z.coerce.number().optional(),
     height: z.coerce.number().optional(),
@@ -69,4 +70,53 @@ export const CreateRoomSchema = z.object({
   name: z.string().nonempty('Tiene que tener al menos un caracter'),
   buildingFloorId: z.string(),
   departmentId: z.string().optional(),
+})
+
+export const CreateIncidentReportSchema = z.object({
+  code: z.string({
+    required_error: "Requerido",
+  }).nonempty("Requerido"),
+  description: z.string().optional(),
+  incidentDate: z.coerce.date({
+    errorMap: (error) => {
+      console.log(error)
+      if (error.code === 'invalid_date') {
+        return {
+          message: 'La fecha no es válida'
+        }
+      }
+
+      return {
+        message: 'Verifique la fecha'
+      }
+    }
+  }),
+  equipmentDetail: z.array(z.object({
+    equipmentId: z.string(),
+    description: z.string(),
+  })).nonempty('Debe agregar al menos un equipo'),
+  statusTypeId: z.string().optional(),
+})
+
+export type CreateIncidentReport = z.infer<typeof CreateIncidentReportSchema>;
+
+
+export const UpdateEquipmentPositionSchema = z.object({
+  equipmentId: z.string(),
+  roomId: z.string(),
+  description: z.string().optional(),
+  date: z.coerce.date({
+    errorMap: (error) => {
+      console.log(error)
+      if (error.code === 'invalid_date') {
+        return {
+          message: 'La fecha no es válida'
+        }
+      }
+
+      return {
+        message: 'Verifique la fecha'
+      }
+    }
+  }),
 })

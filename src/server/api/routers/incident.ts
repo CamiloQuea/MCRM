@@ -4,25 +4,14 @@ import {
     protectedProcedure,
 } from "../trpc";
 import { clerkClient } from "@clerk/nextjs/server";
+import { CreateIncidentReportSchema } from "../validators";
+import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/mysql";
+import { randomUUID } from "crypto";
 
 
 export const incidentRouter = createTRPCRouter({
     getAll: protectedProcedure.query(async ({ ctx }) => {
-        const incidentReport = await ctx.prisma.incidentreport.findMany({
-            // include: {
-            //     incidentReportRecord: {
-            //         orderBy: {
-            //             createdAt: 'desc'
-            //         },
-            //         take: 1,
-            //         include: {
-
-            //             incidentReportState: true,
-            //         }
-            //     },
-
-            // }
-        })
+        const incidentReport = await ctx.db.selectFrom('incidentreport').selectAll().orderBy('createdAt','desc').execute()
 
         const users = new Set(incidentReport.map(incidentReport => incidentReport.creatorId))
 
@@ -32,62 +21,87 @@ export const incidentRouter = createTRPCRouter({
 
         return incidentReport.map(incidentReport => {
             const user = userList.find(user => user.id === incidentReport.creatorId)
-
             return {
                 id: incidentReport.id,
                 code: incidentReport.code,
                 description: incidentReport.description,
                 incidentDate: incidentReport.incidentDate,
                 createdAt: incidentReport.createdAt,
-                // updatedAt: incidentReport.updatedAt,
+
                 user: user ? {
                     id: user.id,
                     username: user.username,
                 } : undefined,
-                // state: incidentReport.incidentReportRecord[0],
             }
-        }
-        )
-
-
+        })
     }),
     getOne: protectedProcedure
         .input(z.object({
             id: z.string(),
         }))
         .query(async ({ ctx, input }) => {
-            const incidentReport = await ctx.prisma.incidentreport.findUnique({
-                where: {
-                    id: input.id
-                },
-                // include: {
-                //     incidentReportRecord: {
-                //         orderBy: {
-                //             createdAt: 'desc'
-                //         },
-                //         take: 1,
-                //         include: {
 
-                //             incidentReportState: true,
-                //         }
-                //     },
-                //     incidentReportEquipment: {
-                //         include: {
-                //             equipment: {
-                //                 include: {
-                //                     equipmentSpecificationSheet: {
-                //                         include: {
-                //                             equipmentBrand: true,
-                //                             equipmentMargesi: true,
-                //                         }
-                //                     }
+            const incidentReport =
+                await ctx.db
+                    .selectFrom('incidentreport')
+                    .selectAll()
+                    .select((eb) => [
+                        'id',
+                        jsonArrayFrom(
+                            eb.selectFrom('incidentreportequipment')
+                                .select((e) => [
+                                    'id',
+                                    'description',
+                                    jsonObjectFrom(
+                                        e.selectFrom('equipment')
+                                            .select([
+                                                'id',
+                                                'serialNumber',
+                                                'internalCode',
+                                               
+                                            
+                                                jsonObjectFrom(
+                                                    e.selectFrom('equipmentspecificationsheet')
+                                                        .select((es) => [
+                                                            'id',
+                                                            'description',
+                                                            'createdAt',
+                                                            'updatedAt',
+                                                            'modelName',
+                                                            jsonObjectFrom(
+                                                                es.selectFrom('equipmentmargesi')
+                                                                    .select((em) => [
+                                                                        'code',
+                                                                        'denomination',
+                                                                        'createdAt',
+                                                                        'updatedAt',
+                                                                    ])
+                                                                    .whereRef('equipmentspecificationsheet.equipmentBrandId', '=', 'equipmentMargesiId')
+                                                            ).as('equipmentMargesi'),
+                                                            jsonObjectFrom(
+                                                                es.selectFrom('equipmentbrand')
+                                                                    .select(() => [
+                                                                        'id',
+                                                                    
+                                                                        'createdAt',
+                                                                        'updatedAt',
+                                                                        'name'
+                                                                    ])
+                                                                    .whereRef('equipmentspecificationsheet.equipmentBrandId', '=', 'equipmentBrandId')
+                                                            ).as('equipmentBrand'),
+                                                        ])
+                                                        .whereRef('equipmentspecificationsheet.id', '=', 'equipmentId')
 
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
-            })
+                                                ).as('equipmentSpecificationSheet')
+                                            ])
+                                            .whereRef('equipment.id', '=', 'incidentreportequipment.equipmentId')
+                                    ).as('equipment'),
+                                ])
+                                .whereRef('incidentreportequipment.incidentReportId', '=', 'incidentreport.id')
+                        ).as('incidentreportequipment'),
+                    ])
+                    .where('id', '=', input.id).executeTakeFirst()
+
 
             if (!incidentReport) return;
 
@@ -96,49 +110,51 @@ export const incidentRouter = createTRPCRouter({
             const user = await clerkClient.users.getUser(incidentReport.creatorId)
 
             return {
-                id: incidentReport.id,
-                code: incidentReport.code,
-                description: incidentReport.description,
-                incidentDate: incidentReport.incidentDate,
-                createdAt: incidentReport.createdAt,
+                // id: incidentReport.id,
+                // code: incidentReport.code,
+                // description: incidentReport.description,
+                // incidentDate: incidentReport.incidentDate,
+                // createdAt: incidentReport.createdAt,
 
                 user: {
                     id: user.id,
                     username: user.username,
                 },
-
+                ...incidentReport
             }
         }),
 
     create: protectedProcedure
-        .input(z.object({
-            code: z.string(),
-            description: z.string(),
-            incidentDate: z.coerce.date(),
-            equipmentDetail: z.array(z.object({
-                equipmentId: z.string(),
-                description: z.string(),
-            })),
-        }))
+        .input(
+            CreateIncidentReportSchema
+        )
         .mutation(({ ctx, input }) => {
-            return ctx.prisma.incidentreport.create({
-                data: {
+            return ctx.db.transaction().execute(async (trx) => {
+                const incidentReport = await trx.insertInto('incidentreport').values({
                     code: input.code,
                     description: input.description,
                     incidentDate: input.incidentDate,
                     creatorId: ctx.auth.userId,
-                    // userId: ctx.auth.userId,
-                    // incidentReportEquipment: {
-                    //     create: input.equipmentDetail.map(equipmentDetail => {
-                    //         return {
-                    //             equipmentId: equipmentDetail.equipmentId,
-                    //             description: equipmentDetail.description,
+                    id: randomUUID()
+                }).executeTakeFirst()
 
-                    //         }
-                    //     })
-                    // }
+                const incidentReportId = incidentReport.insertId
 
-                }
+                if (typeof incidentReportId !== 'undefined')
+
+                    await trx.insertInto('incidentreportequipment').values(input.equipmentDetail.map(equipmentDetail => {
+                        return {
+                            equipmentId: equipmentDetail.equipmentId,
+                            description: equipmentDetail.description,
+                            incidentReportId: incidentReportId.toString(),
+                            id: randomUUID(),
+                            updatedAt: new Date(),
+                        }
+                    })).execute()
+
+                return incidentReport
             })
+
+
         })
 })

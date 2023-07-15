@@ -127,7 +127,7 @@ export const equipmentSheetRouter = createTRPCRouter({
           modelName: input.model,
           width: input.width,
           height: input.height,
-          length: input.lenght,
+          lenght: input.lenght,
         }
       })
 

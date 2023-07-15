@@ -1,5 +1,5 @@
+import { SelectSingleField } from "@/modules/common/components/SelectSingleField";
 import { Button } from "@/modules/common/components/ui/button";
-import { Calendar } from "@/modules/common/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -18,28 +17,10 @@ import {
 } from "@/modules/common/components/ui/form";
 import { Input } from "@/modules/common/components/ui/input";
 import { Label } from "@/modules/common/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/modules/common/components/ui/popover";
-import { ScrollArea } from "@/modules/common/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/modules/common/components/ui/select";
 import { Separator } from "@/modules/common/components/ui/separator";
 import { useZodForm } from "@/modules/common/hooks/useZodForm";
-import { cn } from "@/modules/common/lib/utils";
 import { CreateEquipmentSchema } from "@/server/api/validators";
 import { api } from "@/utils/trpc";
-import { format } from "date-fns";
-import { CalendarIcon, Plus, X } from "lucide-react";
-import { useFieldArray } from "react-hook-form";
-import { SelectSingleField } from "@/modules/common/components/SelectSingleField";
 type AddEquipmentDialogProps = {
   Trigger: React.ReactNode;
 };
@@ -51,6 +32,7 @@ export const AddEquipmentDialog = ({ Trigger }: AddEquipmentDialogProps) => {
       model: "",
       internalCode: "",
       serialNumber: "",
+      equipmentMargesiCode: "",
       codeBar: "",
       admissionDate: new Date(),
       height: 0,
@@ -58,7 +40,7 @@ export const AddEquipmentDialog = ({ Trigger }: AddEquipmentDialogProps) => {
       lenght: 0,
     },
   });
-
+  
   const { equipment } = api.useContext();
 
   const { mutate } = api.equipment.create.useMutation({
@@ -68,15 +50,28 @@ export const AddEquipmentDialog = ({ Trigger }: AddEquipmentDialogProps) => {
     },
   });
 
-  const { data: brandData } = api.equipmentBrand.getAll.useQuery();
-  const { data: margesiData } = api.equipmentMargesi.getAll.useQuery();
+  const { data: brandData, refetch: refetchBrand } =
+    api.equipmentBrand.getAll.useQuery(undefined, {
+      enabled: false,
+    });
+  const { data: margesiData, refetch: refetchMargesi } =
+    api.equipmentMargesi.getAll.useQuery(undefined, {
+      enabled: false,
+    });
 
   const onSubmit = form.handleSubmit(async (data) => {
     mutate(data);
   });
 
   return (
-    <Dialog>
+    <Dialog
+      onOpenChange={(isOpen) => {
+        if (isOpen) {
+          refetchBrand();
+          refetchMargesi();
+        }
+      }}
+    >
       <DialogTrigger asChild>{Trigger}</DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogTitle>Añadir equipamiento</DialogTitle>
@@ -91,6 +86,7 @@ export const AddEquipmentDialog = ({ Trigger }: AddEquipmentDialogProps) => {
                 <SelectSingleField
                   isClearable
                   name="equipmentBrandId"
+                  placeholder="Seleccionar marca"
                   control={form.control}
                   options={
                     brandData?.map((brand) => ({
@@ -105,7 +101,8 @@ export const AddEquipmentDialog = ({ Trigger }: AddEquipmentDialogProps) => {
                 <FormLabel>Margesi</FormLabel>
                 <SelectSingleField
                   isClearable
-                  name="equipmentMargesiCode"
+                  name="margesiCode"
+                  placeholder="Seleccionar margesi"
                   control={form.control}
                   options={
                     margesiData?.map((brand) => ({

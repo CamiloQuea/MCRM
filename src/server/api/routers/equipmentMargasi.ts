@@ -11,8 +11,9 @@ export const equipmentMargesiRouter = createTRPCRouter({
         .input(z.object({
         }).optional())
         .query(async ({ ctx }) => {
-            const branches = await ctx.prisma.equipmentmargesi.findMany();
-            return branches;
+            const query = ctx.db.selectFrom('equipmentmargesi').selectAll()
+            return query.execute()
+         
         }),
 
     create: protectedProcedure

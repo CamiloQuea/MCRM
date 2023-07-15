@@ -27,26 +27,23 @@ import { useDebounce } from "@/modules/common/hooks/useDebounce";
 export const EquipmentPage = () => {
   const form = useZodForm({
     schema: GetAllEquipmentSchema,
+    defaultValues: {
+      search: "",
+    },
   });
 
   const searchDebounce = useDebounce(form.watch("search"), 500);
+
+  const { data: metaData } = api.equipment.getMetadata.useQuery();
 
   const { data } = api.equipment.getAll.useQuery(
     {
       search: searchDebounce,
     },
     {
-      suspense: typeof searchDebounce !== "undefined",
+      enabled: typeof searchDebounce !== "undefined",
     }
   );
-
-  const weeklyCount = data?.filter((item) => {
-    const date = new Date(item.admissionDate.toUTCString());
-    const today = new Date();
-    const firstDayWeek = startOfWeek(today, { weekStartsOn: 1 });
-
-    return date >= firstDayWeek;
-  }).length;
 
   return (
     <div className="space-y-4 ">
@@ -61,10 +58,10 @@ export const EquipmentPage = () => {
           <CardContent>
             <div className="text-2xl font-bold">
               {/* {data?.length } */}
-              {typeof data?.length !== "undefined" ? data?.length : "-"}
+              {typeof metaData?.equipmentCount !== "undefined" ? metaData.equipmentCount: "-"}
             </div>
             <p className="text-xs text-muted-foreground">
-              +{weeklyCount} Agregados esta semana
+              +{metaData?.equipmentCountThisWeek} Agregados esta semana
             </p>
           </CardContent>
         </Card>

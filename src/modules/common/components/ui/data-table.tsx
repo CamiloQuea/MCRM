@@ -26,6 +26,7 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   noDataMessage?: string;
   className?: string;
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -33,6 +34,7 @@ export function DataTable<TData, TValue>({
   data,
   noDataMessage,
   className,
+  isLoading,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const table = useReactTable({
@@ -88,7 +90,8 @@ export function DataTable<TData, TValue>({
                 colSpan={columns.length}
                 className="h-24 text-center text-neutral-500"
               >
-                {noDataMessage ? noDataMessage : "Sin resultados."}
+                {isLoading ? "Cargando..." : noDataMessage ?? "Sin resultados."}
+                {/* {noDataMessage ? noDataMessage : "Sin resultados."} */}
               </TableCell>
             </TableRow>
           )}

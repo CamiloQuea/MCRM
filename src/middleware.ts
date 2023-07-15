@@ -1,5 +1,4 @@
 import { authMiddleware, redirectToSignIn } from "@clerk/nextjs";
-import { redirect } from "@clerk/nextjs/dist/types/server";
 import { NextResponse } from "next/server";
 export default authMiddleware({
     publicRoutes: ["/"],
@@ -12,7 +11,7 @@ export default authMiddleware({
         }
 
         if (auth.userId && req.nextUrl.pathname === '/login') {
-            return NextResponse.redirect(new URL('/', req.url))
+            return NextResponse.redirect(new URL('/dashboard', req.url))
         }
     },
 

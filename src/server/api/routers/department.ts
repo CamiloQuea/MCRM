@@ -6,26 +6,31 @@ import {
 } from "../trpc";
 import { clerkClient } from "@clerk/nextjs/server";
 import { CreateDepartmentSchema } from "../validators";
+import { randomUUID } from "crypto";
 
 
 export const departmentRouter = createTRPCRouter({
     getAll: protectedProcedure
         .query(async ({ ctx }) => {
-            const departments = await ctx.prisma.department.findMany({})
+            const query = ctx.db.selectFrom('department')
+                .selectAll();
 
-            return departments
+
+            return query.execute()
         }),
     create: protectedProcedure
         .input(CreateDepartmentSchema)
         .mutation(async ({ input: { name }, ctx }) => {
 
-            const department = await ctx.prisma.department.create({
-                data: {
-                    name
-                }
-            })
+            const query =
+                ctx.db.insertInto('department').values({
+                    name,
+                    id: randomUUID(),
+                    updatedAt: new Date(),
+                })
 
-            return department
+
+            return query.executeTakeFirst();
         })
 
 })

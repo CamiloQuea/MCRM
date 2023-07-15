@@ -3,6 +3,7 @@ import {
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
+import { randomUUID } from "crypto";
 
 
 export const buildingFloorRouter = createTRPCRouter({
@@ -26,19 +27,14 @@ export const buildingFloorRouter = createTRPCRouter({
         )
         .query(async ({ ctx, input }) => {
 
-            const buildingFloors = await ctx.prisma.buildingfloor.findMany({
-                where: {
-                    buildingId: {
-                        equals: input?.where?.buildingId ? input?.where?.buildingId : undefined
-                    }
-                },
-                orderBy: {
-                    floorNumber: "desc"
-                }
+            let query =
+                ctx.db.selectFrom('buildingfloor').selectAll().orderBy('floorNumber', 'desc');
 
+            if (typeof input?.where?.buildingId !== 'undefined')
+                query = query.where('buildingId', '=', input?.where?.buildingId)
 
-            });
-            return buildingFloors;
+            return query.execute();
+
         }
         ),
     createByMode: protectedProcedure
@@ -54,25 +50,32 @@ export const buildingFloorRouter = createTRPCRouter({
         .mutation(async ({ ctx, input }) => {
 
 
-            const limitFloor = await ctx.prisma.buildingfloor.findMany({
-                orderBy: {
-                    floorNumber: input.mode === "up" ? "desc" : "asc"
-                },
-                where: {
-                    buildingId: {
-                        equals: input.buildingId
-                    }
-                },
-                take: 1
-            });
+            const transaction = await ctx.db.transaction().execute(async (trx) => {
 
-            const newBuildingFloor = await ctx.prisma.buildingfloor.create({
-                data: {
+                const limitFloor = await trx.selectFrom('buildingfloor')
+                    .selectAll()
+                    .where('buildingId', '=', input.buildingId)
+                    .orderBy('floorNumber', input.mode === "up" ? 'desc' : 'asc')
+                    .executeTakeFirst();
+
+                if (typeof limitFloor === 'undefined')
+                    return await trx.insertInto('buildingfloor').values({
+                        buildingId: input.buildingId,
+                        floorNumber: 1,
+                        id: randomUUID(),
+                    }).executeTakeFirst();
+
+                const newBuildingFloor = await trx.insertInto('buildingfloor').values({
                     buildingId: input.buildingId,
-                    floorNumber: input.mode === "up" ? limitFloor[0].floorNumber + 1 : limitFloor[0].floorNumber - 1
-                }
+                    floorNumber: input.mode === "up" ? limitFloor.floorNumber + 1 : limitFloor.floorNumber - 1,
+                    id: randomUUID(),
+                }).executeTakeFirst();
+
+                return newBuildingFloor;
             })
-            return newBuildingFloor;
+
+
+            return transaction;
         })
 
 })

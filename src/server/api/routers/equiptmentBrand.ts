@@ -8,8 +8,12 @@ import { CreateBrandSchema } from "../validators";
 export const equipmentBrandRouter = createTRPCRouter({
 
     getAll: protectedProcedure.query(async ({ ctx }) => {
-        const equipmentBrands = await ctx.prisma.equipmentbrand.findMany();
-        return equipmentBrands;
+
+        const query = ctx.db.selectFrom('equipmentbrand').selectAll()
+
+        return query.execute()
+        // const equipmentBrands = await ctx.prisma.equipmentbrand.findMany();
+        // return equipmentBrands;
     }),
     create: protectedProcedure
         .input(CreateBrandSchema)

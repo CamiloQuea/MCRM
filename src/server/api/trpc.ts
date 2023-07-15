@@ -1,7 +1,7 @@
 
 import { TRPCError, initTRPC } from '@trpc/server';
 import { CreateNextContextOptions } from '@trpc/server/adapters/next';
-import { prisma } from '../db';
+import { db, prisma } from '../db';
 import superjson from 'superjson'
 import { ZodError } from 'zod';
 import type {
@@ -19,6 +19,7 @@ export const createContextInner = async ({ auth }: AuthContext) => {
     return {
         auth,
         prisma,
+        db
     };
 };
 

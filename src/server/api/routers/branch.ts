@@ -1,9 +1,9 @@
 import { z } from "zod";
 import {
-
     createTRPCRouter,
     protectedProcedure,
 } from "../trpc";
+import { randomUUID } from "crypto";
 
 
 export const branchRouter = createTRPCRouter({
@@ -19,15 +19,14 @@ export const branchRouter = createTRPCRouter({
         }).optional())
         .query(async ({ ctx, input }) => {
 
-            const buildings = await ctx.prisma.branch.findMany({
+            let query =
+                ctx.db.selectFrom('branch').selectAll();
 
-                where: input?.where ? {
-                    name: input.where?.name ? {
-                        contains: input.where.name
-                    } : undefined
-                } : undefined
-            });
-            return buildings;
+
+            if (typeof input?.where?.name !== 'undefined')
+                query = query.where('name', 'like', input?.where?.name)
+
+            return query.execute();
         }),
     create: protectedProcedure
 
@@ -38,23 +37,25 @@ export const branchRouter = createTRPCRouter({
             })
         )
         .mutation(async ({ ctx, input }) => {
-            const branch = await ctx.prisma.branch.create({
-                data: {
+            const query =
+                ctx.db.insertInto('branch').values({
                     name: input.name,
-                    hexColor: input.colorHex
-                }
-            });
-            return branch;
+                    hexColor: input.colorHex,
+                    id: randomUUID(),
+                    updatedAt: new Date(),
+                })
+
+            return query.executeTakeFirst();
         }),
     getOne: protectedProcedure.input(z.object({
         id: z.string()
     })).query(async ({ ctx, input }) => {
-        const branch = await ctx.prisma.branch.findUnique({
-            where: {
-                id: input.id
-            },
+        let query =
+            ctx.db.selectFrom('branch').selectAll();
 
-        });
-        return branch;
+        if (typeof input.id !== 'undefined')
+            query = query.where('id', '=', input.id)
+
+        return query.executeTakeFirst();
     }),
 })

@@ -1,22 +1,22 @@
-generator client {
-  provider = "prisma-client-js"
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+generator kysely {
+  provider = "prisma-kysely"
+
+  // Optionally provide a destination directory for the generated file
+  // and a filename of your choice
+  output       = "../src/server/db"
+  fileName     = "types.ts"
+  // Optionally generate runtime enums to a separate file
+  enumFileName = "enums.ts"
 }
 
 datasource db {
   provider     = "mysql"
   url          = env("DATABASE_URL")
   relationMode = "prisma"
-}
-
-model incidentreportstatus {
-  id               String   @id @default(uuid())
-  assignedAt       DateTime @default(now())
-  incidentReportId String
-  statusTypeId     String
-
-  @@unique([incidentReportId, statusTypeId], map: "IncidentReportStatus_incidentReportId_statusTypeId_key")
-  @@index([incidentReportId], map: "IncidentReportStatus_incidentReportId_idx")
-  @@index([statusTypeId], map: "IncidentReportStatus_statusTypeId_idx")
 }
 
 model branch {
@@ -70,6 +70,7 @@ model equipment {
   createdAt                     DateTime                     @default(now())
   equipmentSpecificationSheetId String?
   equipmentSpecificationSheet   equipmentspecificationsheet? @relation(fields: [equipmentSpecificationSheetId], references: [id])
+  incidentreportequipment       incidentreportequipment[]
 
   @@index([equipmentSpecificationSheetId], map: "Equipment_equipmentSpecificationSheetId_idx")
 }
@@ -99,7 +100,7 @@ model equipmentspecificationsheet {
   equipmentBrandId   String?
   width              Int?
   height             Int?
-  length             Int?
+  lenght             Int?
   equipmentMargesiId String?
   equipmentMargesi   equipmentmargesi? @relation(fields: [equipmentMargesiId], references: [id])
   equipmentBrand     equipmentbrand?   @relation(fields: [equipmentBrandId], references: [id])
@@ -122,16 +123,43 @@ model equipmenttracking {
   @@index([roomId], map: "EquipmentTracking_roomId_idx")
 }
 
+model incidentreportstatus {
+  id               String   @id @default(uuid())
+  assignedAt       DateTime @default(now())
+  incidentReportId String
+  statusTypeId     String
+
+  @@unique([incidentReportId, statusTypeId], map: "IncidentReportStatus_incidentReportId_statusTypeId_key")
+  @@index([incidentReportId], map: "IncidentReportStatus_incidentReportId_idx")
+  @@index([statusTypeId], map: "IncidentReportStatus_statusTypeId_idx")
+}
+
 model incidentreport {
-  id           String    @id @default(uuid())
-  code         String
-  createdAt    DateTime  @default(now())
-  description  String?
-  incidentDate DateTime?
-  departmentId String?
-  creatorId    String
+  id                      String                    @id @default(uuid())
+  code                    String
+  createdAt               DateTime                  @default(now())
+  description             String?
+  incidentDate            DateTime?
+  departmentId            String?
+  creatorId               String
+  incidentreportequipment incidentreportequipment[]
 
   @@index([departmentId], map: "IncidentReport_departmentId_idx")
+}
+
+model incidentreportequipment {
+  id               String         @id @default(uuid())
+  incidentReportId String
+  incidentReport   incidentreport @relation(fields: [incidentReportId], references: [id])
+  equipmentId      String
+  equipment        equipment      @relation(fields: [equipmentId], references: [id])
+  description      String?
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([incidentReportId, equipmentId], map: "IncidentReportEquipment_incidentReportId_equipmentId_key")
+  @@index([equipmentId], map: "IncidentReportEquipment_equipmentId_idx")
+  @@index([incidentReportId], map: "IncidentReportEquipment_incidentReportId_idx")
 }
 
 model incidentreportstatustype {

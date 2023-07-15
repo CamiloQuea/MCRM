@@ -5,87 +5,148 @@ import { getEquipmentLocalizationPromise } from "../services/equipment.service";
 import {
     protectedProcedure, createTRPCRouter,
 } from "../trpc";
-import { CreateEquipmentSchema, GetAllEquipmentSchema } from "../validators";
-
-const equipmentData = z.object({
-    codeBar: z.string().optional(),
-    serialNumber: z.string().optional(),
-    internalCode: z.string().optional(),
-    admissionDate: z.date()
-})
-
+import { CreateEquipmentSchema, GetAllEquipmentSchema, UpdateEquipmentPositionSchema } from "../validators";
+import { startOfWeek } from "date-fns";
+import { jsonObjectFrom } from "kysely/helpers/mysql";
+import { randomUUID } from "crypto";
 
 
 export const equipmentRouter = createTRPCRouter({
+
+    getMetadata: protectedProcedure.query(async ({ ctx }) => {
+
+        const query = ctx.db.selectFrom('equipment').select((eb) => [
+            eb.fn.countAll<number>().as('equipmentCount'),
+            eb.selectFrom('equipment').where('admissionDate', '>=', startOfWeek(new Date(), {
+                weekStartsOn: 1
+            })).select((e) => e.fn.countAll().as('equipmentCountThisWeek')).as('equipmentCountThisWeek')
+        ])
+
+        return query.executeTakeFirst()
+    }),
+
+    getOne: protectedProcedure
+        .input(z.object({
+            id: z.string()
+        }))
+        .query(async ({ ctx, input }) => {
+            const query = ctx.db.selectFrom('equipment').select((eb) => [
+                'id',
+                'admissionDate',
+                'codeBar',
+                'createdAt',
+                'margesiCode',
+                'internalCode',
+                'serialNumber',
+                jsonObjectFrom(
+                    eb.selectFrom('equipmentspecificationsheet')
+                        .select((ess) => [
+                            'id',
+                            'modelName',
+                            jsonObjectFrom(ess.selectFrom('equipmentbrand')
+                                .select([
+                                    'id',
+                                    "name"
+                                ])
+                                .whereRef('equipmentbrand.id', '=', 'equipmentspecificationsheet.equipmentBrandId'))
+                                .as('equipmentBrand'),
+                            jsonObjectFrom(ess.selectFrom('equipmentmargesi')
+                                .select([
+                                    'id',
+                                    'code',
+                                    'denomination'
+                                ])
+                                .whereRef('equipmentmargesi.id', '=', 'equipmentspecificationsheet.equipmentMargesiId'))
+                                .as('equipmentMargesi')
+                        ])
+                        .whereRef('equipmentspecificationsheet.id', '=', 'equipment.equipmentSpecificationSheetId')
+                ).as('equipmentSpecificationSheet')
+
+
+            ]).where('id', '=', input.id)
+            return query.executeTakeFirst()
+        }),
+
+    getTrackingHistory: protectedProcedure
+        .input(z.object({
+            id: z.string()
+        }))
+        .query(async ({ ctx, input }) => {
+            const query = ctx.db.selectFrom('equipmenttracking').select((eb) => [
+                'id',
+                'createdAt',
+                'equipmentId',
+                'description',
+                'date',
+                'roomId',
+                jsonObjectFrom(eb.selectFrom('room').select((r) => [
+                    'id',
+                    'name',
+                    jsonObjectFrom(r.selectFrom('buildingfloor').select((bf) => [
+                        'id',
+                        'floorNumber',
+                        jsonObjectFrom(bf.selectFrom('building').select([
+                            'id',
+                            'name'
+                        ]).whereRef('building.id', '=', 'buildingfloor.buildingId')).as('building')
+                    ]).whereRef('buildingfloor.id', '=', 'room.buildingFloorId')).as('buildingFloor')
+
+                ]).whereRef('room.id', '=', 'equipmenttracking.roomId')).as('room'),
+            ]).where('equipmentId', '=', input.id).orderBy('date', 'desc')
+            return query.execute()
+        }),
+
     getAll: protectedProcedure
 
         .input(GetAllEquipmentSchema)
         .query(async ({ ctx, input }) => {
 
+            let query = ctx.db.selectFrom('equipment').select((eb) => [
+                'id',
+                'admissionDate',
+                'codeBar',
+                'createdAt',
+                'margesiCode',
+                'internalCode',
+                'serialNumber',
+                jsonObjectFrom(
+                    eb.selectFrom('equipmentspecificationsheet')
+                        .select((ess) => [
+                            'id',
+                            'modelName',
+                            jsonObjectFrom(ess.selectFrom('equipmentbrand')
+                                .select([
+                                    'id',
+                                    "name"
+                                ])
+                                .whereRef('equipmentbrand.id', '=', 'equipmentspecificationsheet.equipmentBrandId'))
+                                .as('equipmentBrand'),
+                            jsonObjectFrom(ess.selectFrom('equipmentmargesi')
+                                .select([
+                                    'id',
+                                    'code',
+                                    'denomination'
+                                ])
+                                .whereRef('equipmentmargesi.id', '=', 'equipmentspecificationsheet.equipmentMargesiId'))
+                                .as('equipmentMargesi')
+                        ])
+                        .whereRef('equipmentspecificationsheet.id', '=', 'equipment.equipmentSpecificationSheetId')
+                ).as('equipmentSpecificationSheet')
+            ])
+                .orderBy('admissionDate', 'desc')
 
-            const equipment = await ctx.prisma.equipment.findMany({
-                where: {
-                    OR: [
-                        {
-                            codeBar: {
-                                contains: input?.search || ''
-                            }
-                        },
-                        {
-                            internalCode: {
-                                contains: input?.search || ''
-                            }
-                        },
-                    ]
-
-                },
-                orderBy: {
-                    admissionDate: 'desc'
-                },
-                include: {
-                    equipmentSpecificationSheet: {
-                        include: {
-                            equipmentBrand: true,
-                            equipmentMargesi: true
-                        }
-                    }
-                }
-            })
+            if (typeof input?.search !== 'undefined') {
+                query = query.where((eb) => eb.or([
+                    eb('internalCode', 'like', `%${input?.search}%`),
+                    eb('codeBar', 'like', `%${input?.search}%`)
+                ]))
+            }
 
 
-
-
-
-            return equipment;
+            return query.execute();
 
         }),
 
-    // getCount: protectedProcedure
-
-    //     .input(z.object({
-    //         equipmentId: z.string().optional(),
-    //         brandId: z.string().optional(),
-    //         buildingId: z.string().optional(),
-    //     }))
-    //     .query(async ({ ctx, input }) => {
-    //         return await ctx.prisma.equipment.count({
-    //             where: {
-    //                 equipmentTracking: {
-    //                     every: {
-    //                         room: {
-    //                             buildingfloor: {
-    //                                 building: {
-    //                                     id: {
-    //                                         contains: input.buildingId
-    //                                     }
-    //                                 }
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         })
-    //     }),
 
     create: protectedProcedure
         .input(
@@ -94,134 +155,76 @@ export const equipmentRouter = createTRPCRouter({
         )
         .mutation(async ({ ctx, input }) => {
 
-            const sheet = await ctx.prisma.equipmentspecificationsheet.findFirst({
-                where: {
-                    equipmentBrandId: input.equipmentBrandId,
-                    equipmentMargesiId: input.equipmentMargesiCode,
-                    modelName: input.model,
-                    width: input.width,
-                    height: input.height,
-                    length: input.lenght,
-                }
-            })
+            return await ctx.db.transaction().execute(async (trx) => {
 
-            let sheetFound = sheet
+                let sheet = await trx.selectFrom('equipmentspecificationsheet')
+                    .selectAll()
+                    .where((eb) => {
 
-            if (!sheet)
-                sheetFound = await ctx.prisma.equipmentspecificationsheet.create({
-                    data: {
+                        const where = eb('equipmentBrandId', '=', input.equipmentBrandId)
+                            .and('equipmentMargesiId', '=', input.margesiCode)
+                            .and('modelName', '=', input.model)
+
+                        if (typeof input.model !== 'undefined')
+                            where.and('modelName', '=', input.model)
+
+                        if (typeof input.width !== 'undefined')
+                            where.and('width', '=', input.width)
+
+                        if (typeof input.height !== 'undefined')
+                            where.and('height', '=', input.height)
+
+
+                        return where
+                    }
+                    )
+                    .executeTakeFirst()
+
+
+                if (typeof sheet === 'undefined') {
+                    await trx.insertInto('equipmentspecificationsheet').values({
                         equipmentBrandId: input.equipmentBrandId,
-                        equipmentMargesiId: input.equipmentMargesiCode,
+                        equipmentMargesiId: input.margesiCode,
                         modelName: input.model,
                         width: input.width,
                         height: input.height,
-                        length: input.lenght,
-                    }
-                })
+                        lenght: input.lenght,
+                        id: randomUUID(),
+                        updatedAt: new Date(),
 
-            return await ctx.prisma.equipment.createMany({
-                data: {
+                    }).executeTakeFirst()
+
+                    sheet = await trx.selectFrom('equipmentspecificationsheet').selectAll().executeTakeFirst()
+                }
+
+                return await trx.insertInto('equipment').values({
+                    id: randomUUID(),
+                    admissionDate: input.admissionDate,
+                    equipmentSpecificationSheetId: sheet?.id,
                     codeBar: input.codeBar,
                     serialNumber: input.serialNumber,
                     internalCode: input.internalCode,
-                    admissionDate: input.admissionDate,
-                    equipmentSpecificationSheetId: sheetFound?.id
-                }
+                    margesiCode: input.equipmentMargesiCode,
+                    updatedAt: new Date(),
+                }).executeTakeFirst()
+
             })
-
-
         }),
 
-    // getOne: protectedProcedure
-    //     .input(z.object({
-    //         equipmentId: z.string(),
-    //     }))
-    //     .query(async ({ ctx, input }) => {
-    //         return await ctx.prisma.equipment.findUnique({
-    //             where: {
-    //                 id: input.equipmentId
-    //             },
-    //             include: {
-    //                 equipmentSpecificationSheet: {
-    //                     include: {
-    //                         equipmentBrand: true,
-    //                         equipmentMargesi: true
+    updatePosition: protectedProcedure
+        .input(UpdateEquipmentPositionSchema)
+        .mutation(async ({ ctx, input }) => {
+            const query = ctx.db.insertInto('equipmenttracking').values({
+                id: randomUUID(),
+                equipmentId: input.equipmentId,
+                roomId: input.roomId,
+                date: input.date,
+                description: input.description,
+                updatedAt: new Date(),
+            })
 
-    //                     }
-
-    //                 },
-
-    //             }
-    //         })
-    //     }),
-
-    // getLocalization: protectedProcedure.
-    //     input(z.object({
-    //         equipmentId: z.string(),
-    //     }))
-    //     .query(async ({ ctx, input }) => {
-    //         return getEquipmentLocalizationPromise({ prisma: ctx.prisma, input })
-    //     }),
-    // getTrackingHistory: protectedProcedure.
-    //     input(z.object({
-    //         equipmentId: z.string(),
-    //     }))
-    //     .query(async ({ ctx, input }) => {
-    //         return {}
-    //         const tracking = await ctx.prisma.equipmenttracking.findMany({
-    //             where: {
-    //                 equipmentId: input.equipmentId
-    //             },
-    //             include: {
-    //                 room: true,
-    //                 equipment: {
-    //                     include: {
-    //                         equipmentspecificationsheet: {
-    //                             include: {
-    //                                 equipmentbrand: true,
-    //                                 equipmentmargesi: true
-    //                             }
-    //                         }
-    //                     },
-    //                 },
-    //                 department: true,
-    //             },
-    //             orderBy: {
-    //                 createdAt: 'desc'
-    //             }
-    //         })
-
-    //         const usersList = await clerkClient.users.getUserList({
-    //             userId: tracking.map(tracking => tracking.userId)
-    //         })
-
-    //         return tracking.map(tracking => {
-    //             return {
-    //                 ...tracking,
-    //                 username: usersList.find(user => user.id === tracking.userId)?.username
-    //             }
-    //         })
-    //     }),
-    // relocate: protectedProcedure
-    //     .input(z.object({
-    //         equipmentId: z.string(),
-    //         roomId: z.string(),
-    //         description: z.string().optional(),
-    //         departmentId: z.string().optional(),
-    //     }))
-    //     .mutation(async ({ ctx, input }) => {
-    //         return await ctx.prisma.equipmenttracking.create({
-    //             data: {
-    //                 equipmentId: input.equipmentId,
-    //                 roomId: input.roomId,
-
-    //                 description: input.description,
-    //                 date: new Date(),
-    //                 id: 
-
-    //             }
-    //         })
-    //     })
+            return query.executeTakeFirst()
+        })
 
 
 })
