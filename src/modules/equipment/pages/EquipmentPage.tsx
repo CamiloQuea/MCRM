@@ -61,7 +61,7 @@ export const EquipmentPage = () => {
               {typeof metaData?.equipmentCount !== "undefined" ? metaData.equipmentCount: "-"}
             </div>
             <p className="text-xs text-muted-foreground">
-              +{metaData?.equipmentCountThisWeek} Agregados esta semana
+              +{metaData?.equipmentCountThisWeek?.toString()} Agregados esta semana
             </p>
           </CardContent>
         </Card>
