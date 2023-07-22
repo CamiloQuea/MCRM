@@ -1,15 +1,7 @@
-// generator client {
-//   provider = "prisma-client-js"
-// }
-
 generator kysely {
-  provider = "prisma-kysely"
-
-  // Optionally provide a destination directory for the generated file
-  // and a filename of your choice
+  provider     = "prisma-kysely"
   output       = "../src/server/db"
   fileName     = "types.ts"
-  // Optionally generate runtime enums to a separate file
   enumFileName = "enums.ts"
 }
 
@@ -71,6 +63,7 @@ model equipment {
   equipmentSpecificationSheetId String?
   equipmentSpecificationSheet   equipmentspecificationsheet? @relation(fields: [equipmentSpecificationSheetId], references: [id])
   incidentreportequipment       incidentreportequipment[]
+  isObsolete                    Boolean                      @default(false)
 
   @@index([equipmentSpecificationSheetId], map: "Equipment_equipmentSpecificationSheetId_idx")
 }

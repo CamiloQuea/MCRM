@@ -6,9 +6,11 @@ import { UpdateEquipmentPositionDialog } from "@/modules/equipment/dialog/Update
 import { api } from "@/utils/trpc";
 import { format, parse } from "date-fns";
 import { Plus } from "lucide-react";
+import { useRouter } from "next/router";
 import React from "react";
 
 const Index = () => {
+  const { replace } = useRouter();
   const equipmentId = useGetQueryParam("equipmentId");
 
   const { data: equipmentData } = api.equipment.getOne.useQuery(
@@ -17,6 +19,11 @@ const Index = () => {
     },
     {
       enabled: typeof equipmentId !== "undefined",
+      onError: () => {
+        replace({
+          pathname: "/dashboard/equipamiento",
+        });
+      },
     }
   );
 
@@ -33,10 +40,10 @@ const Index = () => {
     <DashboardShell>
       <div className="pt-1 sm:pt-3  sm:px-10 px-4  container">
         <h1 className="py-4 text-3xl font-bold">Equipamiento</h1>
-        <div className="grid grid-cols-[1fr_20rem] divide-x-[1px] ">
-          <div className="mr-5">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_20rem]  md:divide-x-[1px]  ">
+          <div className="mr-5 ">
             <div className="flex">
-              <h2 className="text-lg ">Historial de ubicacion</h2>
+              <h2 className="text-lg font-semibold">Historial de ubicacion</h2>
               <UpdateEquipmentPositionDialog
                 equipmentId={equipmentId as string}
                 Trigger={
@@ -92,7 +99,7 @@ const Index = () => {
             )}
           </div>
 
-          <div className="px-6 divide-y-[1px]">
+          <div className="px-0 md:px-6  divide-y-[1px] row-start-1 md:row-start-auto">
             <section className="py-5">
               <h2 className=" font-bold mb-3">Informacion General</h2>
               <div className="flex flex-col gap-2 text-sm dark:text-neutral-400">

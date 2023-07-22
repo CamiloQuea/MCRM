@@ -13,8 +13,7 @@ export const equipmentBrandRouter = createTRPCRouter({
         const query = ctx.db.selectFrom('equipmentbrand').selectAll()
 
         return query.execute()
-        // const equipmentBrands = await ctx.prisma.equipmentbrand.findMany();
-        // return equipmentBrands;
+      
     }),
     create: protectedProcedure
         .input(CreateBrandSchema)

@@ -16,6 +16,17 @@ import { format } from "date-fns";
 import { Document as Doc, Page as Pag } from "react-pdf/dist/esm";
 import { useGetQueryParam } from "@/modules/common/hooks/useGetQueryParam";
 import { DashboardShell } from "@/modules/common/layout/DashboardShell";
+import { ScrollArea } from "@/modules/common/components/ui/scroll-area";
+import { DataTable } from "@/modules/common/components/ui/data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/modules/common/components/ui/dropdown-menu";
+import { Button } from "@/modules/common/components/ui/button";
+import { MoreHorizontal } from "lucide-react";
 const styles = StyleSheet.create({
   title: {
     // fontSize: 15,
@@ -76,7 +87,7 @@ const styles = StyleSheet.create({
 const IncidentDocument = () => {
   const id = useGetQueryParam("incidentid");
 
-  const { data: incident } = api.incident.getOne.useQuery(
+  const { data: incidentData, isLoading } = api.incident.getOne.useQuery(
     {
       id: id as string,
     },
@@ -84,368 +95,161 @@ const IncidentDocument = () => {
       enabled: !!id,
     }
   );
-  if (!incident) return <></>;
+
+  const { push } = useRouter();
+
+  if (!incidentData) return <></>;
 
   return (
     <DashboardShell>
       <div
         title={`reporte de incidente - ${format(
-          incident.createdAt,
+          incidentData.createdAt,
           "dd/MM/yyyy"
         )}`}
       >
-        <div style={styles.page}>
-          <div
-            style={{
-              marginBottom: 10,
-            }}
-          >
-            <div style={styles.title}>REPORTE DE INCIDENTE</div>
-            <div style={styles.header}>
-              <div style={styles.headerColumn}>
-                <div>Codigo: {incident.code}</div>
-                <div>
-                  Fecha de incidente:{" "}
-                  {format(incident.incidentDate || new Date(), "dd/MM/yyyy")}
-                </div>
-                <div>
-                  Fecha de creación: {format(incident.createdAt, "dd/MM/yyyy")}
-                </div>
+        <div className="container p-5">
+          <div className="divide-y-[1px] border-b-[1px]">
+            <h2 className="font-bold mb-2 text-xl">REPORTE DE INCIDENTE</h2>
+
+            <div className="p-2 rounded grid ">
+              <div>Codigo: {incidentData.code}</div>
+              <div>
+                Fecha de incidente:{" "}
+                {format(incidentData.incidentDate || new Date(), "dd/MM/yyyy")}
               </div>
-              <div style={styles.headerColumn}>
-                <div>
-                  {/* Estado: {incident.state?.incidentReportState.name.toUpperCase()} */}
-                </div>
-                <div>Creador por: {incident.user.username?.toUpperCase()}</div>
-                <div>
-                  {/* Ultima actualización: {format(incident.updatedAt || new Date(),'dd/MM/yyyy')} */}
-                </div>
+              <div>
+                Fecha de creación:{" "}
+                {format(incidentData.createdAt, "dd/MM/yyyy")}
               </div>
             </div>
           </div>
-          <div style={styles.body}>
-            <div style={styles.description}>
-              <div
-                style={{
-                  borderBottom: "1px solid #4a5568",
-                  padding: 5,
-                }}
-              >
-                Descripción
-              </div>
-              <div
-                style={{
-                  // textAlign: "justify",
 
-                  minWidth: 0,
-
-                  padding: 10,
-                }}
-              >
-                {incident.description}
-              </div>
-            </div>
-            <div
-              style={{
-                marginTop: 10,
-              }}
-            >
-              <div
-                style={{
-                  border: "1px solid #4a5568",
-                  padding: 5,
-                }}
-              >
-                Equipos involucrados
-              </div>
-            </div>
-            <div
-              style={{
-                padding: 5,
-                display: "flex",
-                flexDirection: "row",
-                borderLeft: "1px solid #4a5568",
-                borderRight: "1px solid #4a5568",
-                borderBottom: "1px solid #4a5568",
-              }}
-            >
-              <div
-                style={{
-                  width: "10%",
-                }}
-              >
-                Item
-              </div>
-              <div
-                style={{
-                  width: "45%",
-                }}
-              >
-                Informacion
-              </div>
-              <div
-                style={{
-                  width: "45%",
-                }}
-              >
-                Descricion
-              </div>
-            </div>
+          <div className="my-5">
             <div>
-              {incident.incidentreportequipment
+              <div className="text-lg font-medium mb-2">Descripción</div>
+              <ScrollArea className="min-h-[10rem] border rounded p-2">
+                {incidentData.description}
+              </ScrollArea>
+            </div>
+            <div className="my-5">
+              <h2 className="text-lg font-medium mb-2">Equipos involucrados</h2>
 
-                // .flatMap((i) => [])
-                .map((item, i) => (
-                  <div style={styles.items} key={item.id}>
-                    <div
-                      style={{
-                        // width: 'min-content',
-                        flexShrink: 0,
-                        width: "10%",
-                      }}
-                    >
-                      <div
-                        style={{
-                          textAlign: "center",
-                        }}
-                      >
-                        {i + 1}
-                      </div>
+              <div className=" divide-y-[1px]">
+                <DataTable
+                  isLoading={isLoading}
+                  // className="h-[30rem]"
+                  noDataMessage="No equipamiento encontrado"
+                  columns={[
+                    {
+                      accessorFn: (row) =>
+                        row.equipment?.equipmentSpecificationSheet
+                          ?.equipmentMargesi?.code || "-",
+                      accessorKey: "Margesi",
+                    },
+                    {
+                      accessorFn: (row) =>
+                        row.equipment?.equipmentSpecificationSheet
+                          ?.equipmentMargesi?.denomination || "-",
+                      accessorKey: "Denomicación",
+                      cell: (row) => (
+                        <div className="capitalize">{row.getValue()}</div>
+                      ),
+                    },
+                    {
+                      accessorFn: (row) => row.equipment?.codeBar || "-",
+                      accessorKey: "Codigo de barra",
+                    },
+
+                    {
+                      accessorFn: (row) => row.equipment?.internalCode || "-",
+                      accessorKey: "Codigo Interno",
+                    },
+                    {
+                      accessorFn: (row) => row.equipment?.serialNumber || "-",
+                      accessorKey: "Numero de serie",
+                    },
+                    {
+                      accessorFn: (row) =>
+                        row.equipment?.equipmentSpecificationSheet
+                          ?.equipmentBrand?.name || "-",
+                      accessorKey: "Marca",
+                      cell: (row) => (
+                        <div className="capitalize">{row.getValue()}</div>
+                      ),
+                    },
+                    {
+                      accessorFn: (row) =>
+                        row.equipment?.equipmentSpecificationSheet?.modelName ||
+                        "-",
+                      accessorKey: "Modelo",
+                    },
+                    // {
+                    //   accessorKey: "admissionDate",
+                    //   accessorFn: (row) =>
+                    //     format(row.equipment.admissionDate, "dd/MM/yy") || "-",
+                    //   header: "Ingreso",
+                    // },
+                    {
+                      id: "actions",
+                      cell: ({ row }) => {
+                        const payment = row.original;
+
+                        return (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  push(`/dashboard/equipamiento/${payment.equipment?.id}`)
+                                }
+                              >
+                                Detalles
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        );
+                      },
+                    },
+                  ]}
+                  data={incidentData.incidentreportequipment || []}
+                />
+
+                {/* {incident.incidentreportequipment.map((item, i) => (
+                  <div key={item.id} className="p-2">
+                    <div>
+                      <div>{i + 1}</div>
                     </div>
-                    <div
-                      style={{
-                        flexGrow: 1,
-                        width: "45%",
-                        height: "100%",
-                        // backgroundColor: "#edf2f7",
-                        borderLeft: "1px solid #4a5568",
-                        borderRight: "1px solid #4a5568",
-                      }}
-                    >
-                      <div
-                        style={{
-                          borderBottom: "1px solid #4a5568",
-                          display: "flex",
-                          flexDirection: "row",
-                        }}
-                      >
-                        <div
-                          style={{
-                            //inline-block
-                            borderRight: "1px solid #4a5568",
-                            padding: 5,
-                            width: "40%",
-                            flexShrink: 0,
-                          }}
-                        >
-                          Codigo margesi
-                        </div>
-                        <div
-                          style={{
-                            //inline-block
-                            padding: 5,
-                            flexGrow: 1,
-                          }}
-                        >
-                          {
-                            item.equipment?.equipmentSpecificationSheet
-                              ?.equipmentMargesi?.code
-                          }
-                        </div>
+
+                    <div>
+                      <span>{item.equipment?.internalCode}</span>
+                      <span>{item.equipment?.serialNumber}</span>
+                      <div>
+                        {item.equipment?.equipmentSpecificationSheet?.modelName}
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          borderBottom: "1px solid #4a5568",
-                        }}
-                      >
-                        <div
-                          style={{
-                            //inline-block
-                            borderRight: "1px solid #4a5568",
-                            padding: 5,
-                            width: "40%",
-                            flexShrink: 0,
-                          }}
-                        >
-                          Denominación
-                        </div>
-                        <div
-                          style={{
-                            //inline-block
-                            padding: 5,
-                            flexGrow: 1,
-                          }}
-                        >
-                          {
-                            item.equipment?.equipmentSpecificationSheet
-                              ?.equipmentMargesi?.denomination
-                          }
-                        </div>
+                      <div>
+                        {
+                          item.equipment?.equipmentSpecificationSheet
+                            ?.equipmentMargesi?.denomination
+                        }
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          borderBottom: "1px solid #4a5568",
-                        }}
-                      >
-                        <div
-                          style={{
-                            //inline-block
-                            borderRight: "1px solid #4a5568",
-                            padding: 5,
-                            width: "40%",
-                            flexShrink: 0,
-                          }}
-                        >
-                          Modelo
-                        </div>
-                        <div
-                          style={{
-                            //inline-block
-                            padding: 5,
-                            flexGrow: 1,
-                          }}
-                        >
-                          {
-                            item.equipment?.equipmentSpecificationSheet
-                              ?.equipmentBrand?.name
-                          }
-                        </div>
+                      <div>
+                        {
+                          item.equipment?.equipmentSpecificationSheet
+                            ?.equipmentBrand?.name
+                        }
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          borderBottom: "1px solid #4a5568",
-                        }}
-                      >
-                        <div
-                          style={{
-                            //inline-block
-                            borderRight: "1px solid #4a5568",
-                            padding: 5,
-                            width: "40%",
-                            flexShrink: 0,
-                          }}
-                        >
-                          Modelo
-                        </div>
-                        <div
-                          style={{
-                            //inline-block
-                            padding: 5,
-                            flexGrow: 1,
-                          }}
-                        >
-                          {
-                            item.equipment?.equipmentSpecificationSheet
-                              ?.modelName
-                          }
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          borderBottom: "1px solid #4a5568",
-                        }}
-                      >
-                        <div
-                          style={{
-                            //inline-block
-                            borderRight: "1px solid #4a5568",
-                            padding: 5,
-                            width: "40%",
-                            flexShrink: 0,
-                          }}
-                        >
-                          Numero de serie
-                        </div>
-                        <div
-                          style={{
-                            //inline-block
-                            padding: 5,
-                            flexGrow: 1,
-                          }}
-                        >
-                          {item.equipment?.serialNumber}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          borderBottom: "1px solid #4a5568",
-                        }}
-                      >
-                        <div
-                          style={{
-                            //inline-block
-                            borderRight: "1px solid #4a5568",
-                            padding: 5,
-                            width: "40%",
-                            flexShrink: 0,
-                          }}
-                        >
-                          Codigo de barra
-                        </div>
-                        <div
-                          style={{
-                            //inline-block
-                            padding: 5,
-                            flexGrow: 1,
-                          }}
-                        >
-                          {/* {
-                            item.equipment?.
-                          } */}
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          // borderBottom: "1px solid #4a5568",
-                        }}
-                      >
-                        <div
-                          style={{
-                            //inline-block
-                            borderRight: "1px solid #4a5568",
-                            padding: 5,
-                            width: "40%",
-                            flexShrink: 0,
-                          }}
-                        >
-                          Codigo interno
-                        </div>
-                        <div
-                          style={{
-                            //inline-block
-                            padding: 5,
-                            flexGrow: 1,
-                          }}
-                        >
-                          {item.equipment?.internalCode}
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        flexGrow: 1,
-                        width: "45%",
-                        minHeight: "20rem",
-                        padding: 10,
-                        height: "100%",
-                      }}
-                    >
                       <div>{item.description}</div>
                     </div>
                   </div>
-                ))}
+                ))} */}
+              </div>
             </div>
           </div>
         </div>

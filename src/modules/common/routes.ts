@@ -72,11 +72,11 @@ export const adminRoutes: {
     },
 
 
-    usuarios: {
-        title: "Usuarios",
-        to: `${dashboardRoot}/usuarios`,
-        type: 'link',
-    },
+    // usuarios: {
+    //     title: "Usuarios",
+    //     to: `${dashboardRoot}/usuarios`,
+    //     type: 'link',
+    // },
 
 }
 // {

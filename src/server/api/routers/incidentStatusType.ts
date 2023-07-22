@@ -14,6 +14,6 @@ export const incidentStatusTypeRouter = createTRPCRouter({
 
         return query.execute()
 
-        // return ctx.prisma.incidentreportstatustype.findMany();
+       
     })
 })

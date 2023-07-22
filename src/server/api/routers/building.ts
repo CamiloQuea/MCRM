@@ -153,13 +153,7 @@ export const buildingRouter = createTRPCRouter({
                     updatedAt: new Date(),
                     id: randomUUID()
                 }).executeTakeFirst()
-            // await ctx.prisma.building.create({
-            //     data: {
-            //         name: input.name,
-            //         branchId: input.branchId,
-            //         hexColor: input.colorHex,
-            //     }
-            // });
+ 
             return building;
         }),
 })

@@ -10,10 +10,6 @@ BigInt.prototype.toJSON = function () {
   return this.toString();
 };
 
-const globalForPrisma = globalThis as unknown as {
-
-  db: Kysely<DB> | undefined;
-};
 
 
 
@@ -23,7 +19,6 @@ const dialect = new MysqlDialect({
     ssl: {
       rejectUnauthorized: true,
     },
-
   })
 })
 

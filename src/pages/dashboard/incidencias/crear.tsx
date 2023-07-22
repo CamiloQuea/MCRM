@@ -81,7 +81,7 @@ const CrearIncidencia = () => {
 
   const { mutate, isLoading } = api.incident.create.useMutation({
     onSuccess: () => {
-      push("/dashboard/incidencias");
+      // push("/dashboard/incidencias");
     },
   });
 
@@ -252,17 +252,32 @@ const CrearIncidencia = () => {
                       <span>{field.denomination} </span>-{" "}
                       <span>{field.equipmentBrand} </span>-{" "}
                       <span>{field.equipmentModel} </span>
-                      
                     </div>
                     <div>
                       {/* <Label className="text-xl font-bold block mb-2">
                     Descripción
                   </Label> */}
-                      <Textarea
+
+                      <FormField
+                        control={form.control}
+                        name={`equipmentDetail.${index}.description`}
+                        render={({ field }) => (
+                          <FormItem className="col-span-1 sm:col-span-2">
+                            {/* <FormLabel>Descripci&oacute;n</FormLabel> */}
+                            <FormControl>
+                              <Textarea placeholder="Descripción" {...field} />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      {/* <Textarea
                         placeholder="Descripción"
                         className="col-span-1 sm:col-span-2"
-                        name={`equipmentDetail[${index}].description`}
-                      />
+                        {
+
+                        }
+                        // name={`equipmentDetail.${index}.description`}
+                      /> */}
                     </div>
                   </div>
                   <div className=" gap-2 ml-2 h-full flex flex-col justify-start items-center">

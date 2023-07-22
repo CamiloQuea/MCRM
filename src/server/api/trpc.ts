@@ -18,7 +18,6 @@ export interface AuthContext {
 export const createContextInner = async ({ auth }: AuthContext) => {
     return {
         auth,
-      
         db
     };
 };

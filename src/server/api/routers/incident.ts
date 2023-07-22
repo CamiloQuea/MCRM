@@ -7,34 +7,66 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { CreateIncidentReportSchema } from "../validators";
 import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/mysql";
 import { randomUUID } from "crypto";
+import { Expression, SqlBool, sql } from "kysely";
 
 
 export const incidentRouter = createTRPCRouter({
-    getAll: protectedProcedure.query(async ({ ctx }) => {
-        const incidentReport = await ctx.db.selectFrom('incidentreport').selectAll().orderBy('createdAt','desc').execute()
+    getAll: protectedProcedure
+        .input(
+            z.object({
 
-        const users = new Set(incidentReport.map(incidentReport => incidentReport.creatorId))
+                dateRange: z.object({
+                    dateStart: z.coerce.date().optional(),
+                    dateEnd: z.coerce.date().optional(),
+                }).optional(),
+                limit: z.number().optional(),
 
-        const userList = await clerkClient.users.getUserList({
-            userId: Array.from(users)
-        })
+            }).optional()
+        )
+        .query(async ({ ctx, input }) => {
+            let incidentReportQuery = ctx.db.selectFrom('incidentreport').selectAll().orderBy('createdAt', 'desc')
 
-        return incidentReport.map(incidentReport => {
-            const user = userList.find(user => user.id === incidentReport.creatorId)
-            return {
-                id: incidentReport.id,
-                code: incidentReport.code,
-                description: incidentReport.description,
-                incidentDate: incidentReport.incidentDate,
-                createdAt: incidentReport.createdAt,
+            if (typeof input?.limit !== 'undefined')
+                incidentReportQuery = incidentReportQuery.limit(input.limit)
 
-                user: user ? {
-                    id: user.id,
-                    username: user.username,
-                } : undefined,
-            }
-        })
-    }),
+            if (input?.dateRange)
+                incidentReportQuery = incidentReportQuery.where((irw) => {
+                    const ors = []
+
+                    if (input.dateRange?.dateStart)
+                        ors.push(irw('createdAt', '>=', input.dateRange.dateStart))
+
+                    if (input.dateRange?.dateEnd)
+                        ors.push(irw('createdAt', '<=', input.dateRange.dateEnd))
+
+                    return irw.and(ors)
+                })
+
+
+            const incidentReport = await incidentReportQuery.execute()
+
+            const users = new Set(incidentReport.map(incidentReport => incidentReport.creatorId))
+
+            const userList = await clerkClient.users.getUserList({
+                userId: Array.from(users)
+            })
+
+            return incidentReport.map(incidentReport => {
+                const user = userList.find(user => user.id === incidentReport.creatorId)
+                return {
+                    id: incidentReport.id,
+                    code: incidentReport.code,
+                    description: incidentReport.description,
+                    incidentDate: incidentReport.incidentDate,
+                    createdAt: incidentReport.createdAt,
+
+                    user: user ? {
+                        id: user.id,
+                        username: user.username,
+                    } : undefined,
+                }
+            })
+        }),
     getOne: protectedProcedure
         .input(z.object({
             id: z.string(),
@@ -49,52 +81,42 @@ export const incidentRouter = createTRPCRouter({
                         'id',
                         jsonArrayFrom(
                             eb.selectFrom('incidentreportequipment')
-                                .select((e) => [
+                                .select((i) => [
                                     'id',
                                     'description',
                                     jsonObjectFrom(
-                                        e.selectFrom('equipment')
-                                            .select([
+                                        i.selectFrom('equipment as e')
+                                            .select((e) => [
                                                 'id',
                                                 'serialNumber',
                                                 'internalCode',
-                                               
-                                            
+                                                'codeBar',
+                                                'equipmentSpecificationSheetId',
                                                 jsonObjectFrom(
-                                                    e.selectFrom('equipmentspecificationsheet')
-                                                        .select((es) => [
+                                                    e.selectFrom('equipmentspecificationsheet as s')
+                                                        .select((ess) => [
                                                             'id',
-                                                            'description',
-                                                            'createdAt',
-                                                            'updatedAt',
                                                             'modelName',
-                                                            jsonObjectFrom(
-                                                                es.selectFrom('equipmentmargesi')
-                                                                    .select((em) => [
-                                                                        'code',
-                                                                        'denomination',
-                                                                        'createdAt',
-                                                                        'updatedAt',
-                                                                    ])
-                                                                    .whereRef('equipmentspecificationsheet.equipmentBrandId', '=', 'equipmentMargesiId')
-                                                            ).as('equipmentMargesi'),
-                                                            jsonObjectFrom(
-                                                                es.selectFrom('equipmentbrand')
-                                                                    .select(() => [
-                                                                        'id',
-                                                                    
-                                                                        'createdAt',
-                                                                        'updatedAt',
-                                                                        'name'
-                                                                    ])
-                                                                    .whereRef('equipmentspecificationsheet.equipmentBrandId', '=', 'equipmentBrandId')
-                                                            ).as('equipmentBrand'),
+                                                            jsonObjectFrom(ess.selectFrom('equipmentbrand')
+                                                                .select([
+                                                                    'id',
+                                                                    "name"
+                                                                ])
+                                                                .whereRef('equipmentbrand.id', '=', 's.equipmentBrandId'))
+                                                                .as('equipmentBrand'),
+                                                            jsonObjectFrom(ess.selectFrom('equipmentmargesi')
+                                                                .select([
+                                                                    'id',
+                                                                    'code',
+                                                                    'denomination'
+                                                                ])
+                                                                .whereRef('equipmentmargesi.id', '=', 's.equipmentMargesiId'))
+                                                                .as('equipmentMargesi')
                                                         ])
-                                                        .whereRef('equipmentspecificationsheet.id', '=', 'equipmentId')
-
+                                                        .whereRef('s.id', '=', 'e.equipmentSpecificationSheetId')
                                                 ).as('equipmentSpecificationSheet')
                                             ])
-                                            .whereRef('equipment.id', '=', 'incidentreportequipment.equipmentId')
+                                            .whereRef('e.id', '=', 'incidentreportequipment.equipmentId')
                                     ).as('equipment'),
                                 ])
                                 .whereRef('incidentreportequipment.incidentReportId', '=', 'incidentreport.id')
@@ -129,32 +151,75 @@ export const incidentRouter = createTRPCRouter({
             CreateIncidentReportSchema
         )
         .mutation(({ ctx, input }) => {
+            // console.log(input)
+            // return;
+
             return ctx.db.transaction().execute(async (trx) => {
-                const incidentReport = await trx.insertInto('incidentreport').values({
-                    code: input.code,
-                    description: input.description,
-                    incidentDate: input.incidentDate,
-                    creatorId: ctx.auth.userId,
-                    id: randomUUID()
-                }).executeTakeFirst()
 
-                const incidentReportId = incidentReport.insertId
+                const incidentReportId = randomUUID()
 
-                if (typeof incidentReportId !== 'undefined')
+                const incidentReport = await trx
+                    .insertInto('incidentreport')
+                    .values({
+                        code: input.code,
+                        description: input.description,
+                        incidentDate: input.incidentDate,
+                        creatorId: ctx.auth.userId,
+                        id: incidentReportId
+                    })
+                    .executeTakeFirstOrThrow()
 
-                    await trx.insertInto('incidentreportequipment').values(input.equipmentDetail.map(equipmentDetail => {
-                        return {
-                            equipmentId: equipmentDetail.equipmentId,
-                            description: equipmentDetail.description,
-                            incidentReportId: incidentReportId.toString(),
-                            id: randomUUID(),
-                            updatedAt: new Date(),
-                        }
-                    })).execute()
+
+
+                await trx.insertInto('incidentreportequipment').values(input.equipmentDetail.map(equipmentDetail => {
+                    return {
+                        equipmentId: equipmentDetail.equipmentId,
+                        description: equipmentDetail.description,
+                        incidentReportId: incidentReportId,
+                        id: randomUUID(),
+                        updatedAt: new Date(),
+                    }
+                })).execute()
 
                 return incidentReport
             })
+        }),
+    getCountByDay: protectedProcedure
+        .input(z.object({
+            //fechas limites
+            dateRange: z.object({
+                dateStart: z.coerce.date().optional(),
+                dateEnd: z.coerce.date().optional(),
+            }).optional()
+        }).optional())
+        .query(async ({ ctx, input }) => {
+            let incidentReportCount = ctx.db
+                .selectFrom('incidentreport')
+                .select((ir) => [
+                    ir.fn.countAll<number>().as('count'),
+                    sql<Date>`date(createdAt)`.as('date')
+                ])
+                .groupBy('date')
+
+            if (typeof input === 'undefined')
+                return incidentReportCount.execute()
 
 
+            if (input.dateRange)
+                incidentReportCount = incidentReportCount.where((irw) => {
+                    const ors = []
+
+                    if (input.dateRange?.dateStart)
+                        ors.push(irw('createdAt', '>=', input.dateRange.dateStart))
+
+                    if (input.dateRange?.dateEnd)
+                        ors.push(irw('createdAt', '<=', input.dateRange.dateEnd))
+
+                    return irw.and(ors)
+                })
+
+
+
+            return incidentReportCount.execute()
         })
 })

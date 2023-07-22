@@ -41,6 +41,7 @@ export type equipment = {
     updatedAt: Timestamp;
     createdAt: Generated<Timestamp>;
     equipmentSpecificationSheetId: string | null;
+    isObsolete: Generated<number>;
 };
 export type equipmentbrand = {
     id: string;

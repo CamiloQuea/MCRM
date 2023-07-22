@@ -29,9 +29,7 @@ export const equipmentMargesiRouter = createTRPCRouter({
                 code: input.code, updatedAt: new Date(),
             })
 
-            // const branch = await ctx.prisma.equipmentmargesi.create({
-            //     data: input
-            // });
+  
             return query.executeTakeFirst();
         })
 

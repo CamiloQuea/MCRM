@@ -1,14 +1,14 @@
 
-import { clerkClient } from "@clerk/nextjs/server";
 import { z } from "zod";
-import { getEquipmentLocalizationPromise } from "../services/equipment.service";
-import {
-    protectedProcedure, createTRPCRouter,
-} from "../trpc";
-import { CreateEquipmentSchema, GetAllEquipmentSchema, UpdateEquipmentPositionSchema } from "../validators";
+import { randomUUID } from "crypto";
 import { startOfWeek } from "date-fns";
 import { jsonObjectFrom } from "kysely/helpers/mysql";
-import { randomUUID } from "crypto";
+import {
+    createTRPCRouter,
+    protectedProcedure,
+} from "../trpc";
+import { CreateEquipmentSchema, GetAllEquipmentSchema, UpdateEquipmentPositionSchema } from "../validators";
+import { sql } from "kysely";
 
 
 export const equipmentRouter = createTRPCRouter({
@@ -224,7 +224,17 @@ export const equipmentRouter = createTRPCRouter({
             })
 
             return query.executeTakeFirst()
-        })
+        }),
+
+    getCountByDay: protectedProcedure.query(async ({ ctx }) => {
+        const query = ctx.db.selectFrom('equipment').select((eb) => [
+            eb.fn.countAll<number>().as('count'),
+            sql<Date>`createdAt`.as('date')
+        ])
+            .groupBy('createdAt')
+
+        return query.execute()
+    })
 
 
 })

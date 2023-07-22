@@ -2,11 +2,52 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle
+  CardTitle,
 } from "@/modules/common/components/ui/card";
+import { ScrollArea } from "@/modules/common/components/ui/scroll-area";
 import { DashboardShell } from "@/modules/common/layout/DashboardShell";
+import { api } from "@/utils/trpc";
+import { addDays, format, isThisWeek, startOfMonth } from "date-fns";
+import { Car, Clipboard, Package, XCircle } from "lucide-react";
+import Link from "next/link";
 
 const Index = () => {
+  const { data: incidentCount } = api.incident.getCountByDay.useQuery({
+    dateRange: {
+      dateStart: startOfMonth(new Date()),
+    },
+  });
+
+  const { data: equipmentCount } = api.equipment.getCountByDay.useQuery();
+
+  const { data: incidentData } = api.incident.getAll.useQuery({
+    limit: 5,
+  });
+
+  const { data: equipmentTrackingData } = api.equipmentTracking.getAllById.useQuery(
+    {
+      limit: 5,
+    }
+  );
+
+  const totalIncidentCount = incidentCount?.reduce((acum, current) => {
+    return acum + current.count;
+  }, 0);
+
+  const lastWeekIncidentCount = incidentCount?.reduce((acum, current) => {
+    if (!isThisWeek(current.date)) return acum;
+    return acum + current.count;
+  }, 0);
+
+  const totalEquipmentCount = equipmentCount?.reduce((acum, current) => {
+    return acum + current.count;
+  }, 0);
+
+  const lastWeekEquipmentCount = equipmentCount?.reduce((acum, current) => {
+    if (!isThisWeek(current.date)) return acum;
+    return acum + current.count;
+  }, 0);
+
   return (
     <DashboardShell>
       <div className="p-10 pt-6">
@@ -17,100 +58,108 @@ const Index = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Revenue
+                Incidentes Mensuales
               </CardTitle>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                className="h-4 w-4 text-muted-foreground"
-              >
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
+              <Clipboard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$45,231.89</div>
+              <div className="text-2xl font-bold">{totalIncidentCount}</div>
               <p className="text-xs text-muted-foreground">
-                +20.1% from last month
+                +{lastWeekIncidentCount} esta semana
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Subscriptions
+                Cantidad de equipos
               </CardTitle>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                className="h-4 w-4 text-muted-foreground"
-              >
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
+              <Package />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">+2350</div>
+              <div className="text-2xl font-bold">{totalEquipmentCount}</div>
               <p className="text-xs text-muted-foreground">
-                +180.1% from last month
+                +{lastWeekEquipmentCount} esta semana
               </p>
             </CardContent>
           </Card>
-          <Card>
+
+          <Card className="row-span-3">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sales</CardTitle>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                className="h-4 w-4 text-muted-foreground"
-              >
-                <rect width="20" height="14" x="2" y="5" rx="2" />
-                <path d="M2 10h20" />
-              </svg>
+              <CardTitle className="text-sm font-medium">
+                Ultimos 5 movimientos
+              </CardTitle>
+              <Car />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">+12,234</div>
-              <p className="text-xs text-muted-foreground">
-                +19% from last month
-              </p>
+            <CardContent className="divide-y-[1px]">
+              {equipmentTrackingData?.map((tracking) => (
+                <div
+                  className="space-y-0 py-2 relative group"
+                  key={tracking.id}
+                >
+                  <Link
+                    href={{
+                      pathname: "/dashboard/incidencias/[incidentid]",
+                      query: { incidentid: tracking.id },
+                    }}
+                    className="absolute right-0 group-hover:opacity-100 group-focus-within:opacity-100 opacity-0 transition-all duration-75 p-2"
+                  >
+                    Ver mas
+                  </Link>
+                  <h3 className="font-medium text-neutral-900 dark:text-white uppercase">
+                    {tracking.name}
+                  </h3>
+                  <time className="mb-1 text-sm font-normal leading-none text-neutral-400 dark:text-neutral-500">
+                    {format(
+                      tracking.date || new Date(),
+                      "dd/MM/yy hh:mm:ss"
+                    )}
+                  </time>
+
+                  <p className="mb-4 text-base font-normal text-neutral-500 dark:text-neutral-400 line-clamp-2">
+                    {tracking.description}
+                  </p>
+                </div>
+              ))}
             </CardContent>
           </Card>
-          <Card>
+          <Card className="row-span-3">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Now</CardTitle>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                className="h-4 w-4 text-muted-foreground"
-              >
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
+              <CardTitle className="text-sm font-medium">
+                Ultimos 5 incidentes
+              </CardTitle>
+              <XCircle />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">+573</div>
-              <p className="text-xs text-muted-foreground">
-                +201 since last hour
-              </p>
+            <CardContent className="divide-y-[1px]">
+              {incidentData?.map((incident) => (
+                <div
+                  className="space-y-0 py-2 relative group"
+                  key={incident.id}
+                >
+                  <Link
+                    href={{
+                      pathname: "/dashboard/incidencias/[incidentid]",
+                      query: { incidentid: incident.id },
+                    }}
+                    className="absolute right-0 group-hover:opacity-100 group-focus-within:opacity-100 opacity-0 transition-all duration-75 p-2"
+                  >
+                    Ver mas
+                  </Link>
+                  <h3 className="font-medium text-neutral-900 dark:text-white">
+                    {incident.user?.username}
+                  </h3>
+                  <time className="mb-1 text-sm font-normal leading-none text-neutral-400 dark:text-neutral-500">
+                    {format(
+                      incident.incidentDate || new Date(),
+                      "dd/MM/yy hh:mm:ss"
+                    )}
+                  </time>
+
+                  <p className="mb-4 text-base font-normal text-neutral-500 dark:text-neutral-400 line-clamp-2">
+                    {incident.description}
+                  </p>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>
