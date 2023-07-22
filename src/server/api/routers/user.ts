@@ -48,7 +48,7 @@ export const userRouter = createTRPCRouter({
                 skipPasswordRequirement: true,
 
             }).catch((err) => {
-                console.log(err.errors[0]);
+                
                 throw err;
             });
         })

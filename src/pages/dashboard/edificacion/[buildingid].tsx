@@ -70,7 +70,7 @@ const Index = () => {
     },
   });
 
-  console.log(metadata)
+  
 
   return (
     <DashboardShell>

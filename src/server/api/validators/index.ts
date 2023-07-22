@@ -79,7 +79,7 @@ export const CreateIncidentReportSchema = z.object({
   description: z.string().optional(),
   incidentDate: z.coerce.date({
     errorMap: (error) => {
-      console.log(error)
+   
       if (error.code === 'invalid_date') {
         return {
           message: 'La fecha no es válida'
@@ -107,7 +107,7 @@ export const UpdateEquipmentPositionSchema = z.object({
   description: z.string().optional(),
   date: z.coerce.date({
     errorMap: (error) => {
-      console.log(error)
+   
       if (error.code === 'invalid_date') {
         return {
           message: 'La fecha no es válida'

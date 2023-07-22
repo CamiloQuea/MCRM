@@ -31,7 +31,7 @@ export default function Page() {
   const { signIn, setActive } = useSignIn();
 
   const onSubmit = form.handleSubmit(async ({ password, username }) => {
-    console.log({ password, username });
+   
     await signIn
       ?.create({
         identifier: username,
@@ -44,7 +44,7 @@ export default function Page() {
           });
           setActive({ session: result.createdSessionId });
         } else {
-          console.log(result);
+          // console.log(result);
         }
       })
       .catch((err) => {
